@@ -51,6 +51,17 @@ parameters:
   value: 2Gi
   name: NEXUS_DATA_VOLUME_SIZE
   required: true  
+  required: true  
+- description: Jenkins data Volume Size
+  displayName: Jenkins data Volume Size
+  value: 2Gi
+  name: JENKINS_DATA_VOLUME_SIZE
+  required: true  
+- description: Jenkins node data Volume Size
+  displayName: Jenkins node Volume Size
+  value: 2Gi
+  name: JENKINS_NODE_DATA_VOLUME_SIZE
+  required: true  
 
 objects:
 - apiVersion: v1
@@ -958,3 +969,26 @@ objects:
           name: sonarqube:6.0
       type: ImageChange
   status: {}
+# jenkins pvc      
+- apiVersion: v1
+  kind: PersistentVolumeClaim
+  metadata:
+    name: jenkins-claim
+  spec:
+    accessModes:
+    - ReadWriteMany
+    resources:
+      requests:
+        storage: ${JENKINS_DATA_VOLUME_SIZE}
+  status: {}
+# jenkins node pvc      
+- apiVersion: v1
+  kind: PersistentVolumeClaim
+  metadata:
+    name: jenkins-node-claim
+  spec:
+    accessModes:
+    - ReadWriteMany
+    resources:
+      requests:
+        storage: ${JENKINS_NODE_DATA_VOLUME_SIZE}
