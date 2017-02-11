@@ -110,3 +110,4 @@ __Note:__ you need ~8GB memory for running this demo.
   oc login -u system:admin
   oc create -f https://raw.githubusercontent.com/jboss-openshift/application-templates/master/jboss-image-streams.json -n openshift
   ```
+

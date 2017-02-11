@@ -1,0 +1,105 @@
+apiVersion: v1
+kind: Template
+metadata:
+  name: cicd-pvc
+labels:
+  template: cicd-pvc
+  group: cicd
+metadata:
+  annotations:
+    description: Creates the PVC for CI/CD infrastructure with Jenkins, Gogs, Nexus and SonarQube
+    iconClass: icon-jenkins
+    tags: instant-app,jenkins,gogs,nexus,cicd
+  name: cicd-pvc
+message: The PVC for CI/CD infrastructure composed of Jenkins, Gogs, Nexus Repository and SonarQube services has been created in your project. 
+parameters:
+# volume size
+- description: Gogs DB Volume Size
+  displayName: Gogs DB Volume Size
+  value: 2Gi
+  name: GOGS_DB_VOLUME_SIZE
+  required: true    
+- description: SonarQube DB Volume Size
+  displayName: SonarQube DB Volume Size
+  value: 2Gi
+  name: SONARQUBE_DB_VOLUME_SIZE
+  required: true  
+- description: Nexus data Volume Size
+  displayName: Nexus data Volume Size
+  value: 2Gi
+  name: NEXUS_DATA_VOLUME_SIZE
+  required: true  
+  required: true  
+- description: Jenkins data Volume Size
+  displayName: Jenkins data Volume Size
+  value: 2Gi
+  name: JENKINS_DATA_VOLUME_SIZE
+  required: true  
+- description: Jenkins node data Volume Size
+  displayName: Jenkins node Volume Size
+  value: 2Gi
+  name: JENKINS_NODE_DATA_VOLUME_SIZE
+  required: true  
+
+objects:
+# nexus pvc      
+- apiVersion: v1
+  kind: PersistentVolumeClaim
+  metadata:
+    name: nexus-claim
+  spec:
+    accessModes:
+    - ReadWriteMany
+    resources:
+      requests:
+        storage: ${NEXUS_DATA_VOLUME_SIZE}
+
+# postgresql gogs pvc      
+
+- apiVersion: v1
+  kind: PersistentVolumeClaim
+  metadata:
+    name: postgresql-gogs-claim
+  spec:
+    accessModes:
+    - ReadWriteMany
+    resources:
+      requests:
+        storage: ${GOGS_DB_VOLUME_SIZE}  
+
+# postgresql sonarqube pvc      
+
+- apiVersion: v1
+  kind: PersistentVolumeClaim
+  metadata:
+    name: postgresql-sonarqube-claim
+  spec:
+    accessModes:
+    - ReadWriteMany
+    resources:
+      requests:
+        storage: ${SONARQUBE_DB_VOLUME_SIZE}           
+
+# jenkins pvc      
+- apiVersion: v1
+  kind: PersistentVolumeClaim
+  metadata:
+    name: jenkins-claim
+  spec:
+    accessModes:
+    - ReadWriteMany
+    resources:
+      requests:
+        storage: ${JENKINS_DATA_VOLUME_SIZE}
+  status: {}
+# jenkins node pvc      
+- apiVersion: v1
+  kind: PersistentVolumeClaim
+  metadata:
+    name: jenkins-node-claim
+  spec:
+    accessModes:
+    - ReadWriteMany
+    resources:
+      requests:
+        storage: ${JENKINS_NODE_DATA_VOLUME_SIZE}

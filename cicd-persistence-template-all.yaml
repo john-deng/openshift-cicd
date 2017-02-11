@@ -36,39 +36,95 @@ parameters:
   generate: expression
   name: SONAR_POSTGRESQL_PASSWORD
   required: true
-# pvc name
-- description: Gogs PVC name
-  displayName: Gogs PVC name
-  value: gogs-data
-  name: GOGS_PVC_NAME
+# volume size
+- description: Gogs DB Volume Size
+  displayName: Gogs DB Volume Size
+  value: 16Gi
+  name: GOGS_DB_VOLUME_SIZE
   required: true    
-- description: Gogs Postgresql PVC name
-  displayName: Gogs Postgresql PVC name
-  value: gogs-postgresql-data
-  name: GOGS_POSTGRESQL_PVC_NAME
-  required: true    
-- description: Jenkins PVC name
-  displayName: Jenkins PVC name
-  value: jenkins-data
-  name: JENKINS_PVC_NAME
-  required: true    
-- description: SonarQube Postgresql PVC name
-  displayName: SonarQube Postgresql PVC name
-  value: sonarqube-postgresql-data
-  name: SONARQUBE_POSTGRESQL_PVC_NAME
-  required: true    
-- description: SonarQube PVC name
-  displayName: SonarQube PVC name
-  value: sonarqube-data
-  name: SONARQUBE_PVC_NAME
-  required: true
-- description: Nexus PVC name
-  displayName: Nexus PVC name
-  value: nexus-data
-  name: NEXUS_PVC_NAME
-  required: true
+- description: SonarQube DB Volume Size
+  displayName: SonarQube DB Volume Size
+  value: 8Gi
+  name: SONARQUBE_DB_VOLUME_SIZE
+  required: true  
+- description: Nexus data Volume Size
+  displayName: Nexus data Volume Size
+  value: 8Gi
+  name: NEXUS_DATA_VOLUME_SIZE
+  required: true  
+  required: true  
+- description: Jenkins data Volume Size
+  displayName: Jenkins data Volume Size
+  value: 8Gi
+  name: JENKINS_DATA_VOLUME_SIZE
+  required: true  
+- description: Jenkins node data Volume Size
+  displayName: Jenkins node Volume Size
+  value: 8Gi
+  name: JENKINS_NODE_DATA_VOLUME_SIZE
+  required: true  
+
 objects:
-# RoleBinding
+# nexus pvc      
+- apiVersion: v1
+  kind: PersistentVolumeClaim
+  metadata:
+    name: nexus-claim
+  spec:
+    accessModes:
+    - ReadWriteMany
+    resources:
+      requests:
+        storage: ${NEXUS_DATA_VOLUME_SIZE}
+
+# postgresql gogs pvc      
+- apiVersion: v1
+  kind: PersistentVolumeClaim
+  metadata:
+    name: postgresql-gogs-claim
+  spec:
+    accessModes:
+    - ReadWriteMany
+    resources:
+      requests:
+        storage: ${GOGS_DB_VOLUME_SIZE}  
+
+# postgresql sonarqube pvc      
+- apiVersion: v1
+  kind: PersistentVolumeClaim
+  metadata:
+    name: postgresql-sonarqube-claim
+  spec:
+    accessModes:
+    - ReadWriteMany
+    resources:
+      requests:
+        storage: ${SONARQUBE_DB_VOLUME_SIZE}           
+
+# jenkins pvc      
+- apiVersion: v1
+  kind: PersistentVolumeClaim
+  metadata:
+    name: jenkins-claim
+  spec:
+    accessModes:
+    - ReadWriteMany
+    resources:
+      requests:
+        storage: ${JENKINS_DATA_VOLUME_SIZE}
+  status: {}
+
+# jenkins node pvc      
+- apiVersion: v1
+  kind: PersistentVolumeClaim
+  metadata:
+    name: jenkins-node-claim
+  spec:
+    accessModes:
+    - ReadWriteMany
+    resources:
+      requests:
+        storage: ${JENKINS_NODE_DATA_VOLUME_SIZE}
 - apiVersion: v1
   groupNames: null
   kind: RoleBinding
@@ -281,12 +337,10 @@ objects:
         dnsPolicy: ClusterFirst
         restartPolicy: Always
         terminationGracePeriodSeconds: 30
-        securityContext: 
-          runAsUser: 200
         volumes:
         - name: nexus-data
           persistentVolumeClaim:
-            claimName: ${NEXUS_PVC_NAME}
+            claimName: nexus-claim
     triggers:
     - type: ConfigChange
     - imageChangeParams:
@@ -391,7 +445,7 @@ objects:
         version: "latest"
       from:
         kind: DockerImage
-        name: docker.io/openshiftdemos/gogs:0.9.113
+        name: fabric8/gogs:2.2.311
       importPolicy: {}
       name: "2.2.311"
 # gogs dc
@@ -408,14 +462,7 @@ objects:
       app: gogs
       deploymentconfig: gogs
     strategy:
-      resources: {}
-      rollingParams:
-        intervalSeconds: 1
-        maxSurge: 25%
-        maxUnavailable: 25%
-        timeoutSeconds: 600
-        updatePeriodSeconds: 1
-      type: Rolling
+      type: Recreate
     template:
       metadata:
         labels:
@@ -453,8 +500,7 @@ objects:
             timeoutSeconds: 1
         dnsPolicy: ClusterFirst
         restartPolicy: Always
-        securityContext:
-          runAsUser: 997
+        securityContext: {}
         terminationGracePeriodSeconds: 30
     triggers:
     - type: ConfigChange
@@ -541,12 +587,10 @@ objects:
         restartPolicy: Always
         securityContext: {}
         terminationGracePeriodSeconds: 30
-        securityContext: 
-          runAsUser: 26
         volumes:
         - name: postgresql-data
           persistentVolumeClaim:
-            claimName: ${GOGS_POSTGRESQL_PVC_NAME}
+            claimName: postgresql-gogs-claim
     triggers:
     - imageChangeParams:
         automatic: true
@@ -866,13 +910,12 @@ objects:
             name: postgresql-data
         dnsPolicy: ClusterFirst
         restartPolicy: Always
+        securityContext: {}
         terminationGracePeriodSeconds: 30
-        securityContext: 
-          runAsUser: 26
         volumes:
         - name: postgresql-data
           persistentVolumeClaim:
-              claimName: ${SONARQUBE_POSTGRESQL_PVC_NAME}
+              claimName: postgresql-sonarqube-claim
     test: false
     triggers:
     - imageChangeParams:
@@ -956,8 +999,7 @@ objects:
           terminationMessagePath: /dev/termination-log
         dnsPolicy: ClusterFirst
         restartPolicy: Always
-        securityContext: 
-          runAsUser: 997
+        securityContext: {}
         terminationGracePeriodSeconds: 30
     test: false
     triggers:

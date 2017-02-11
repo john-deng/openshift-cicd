@@ -36,39 +36,8 @@ parameters:
   generate: expression
   name: SONAR_POSTGRESQL_PASSWORD
   required: true
-# pvc name
-- description: Gogs PVC name
-  displayName: Gogs PVC name
-  value: gogs-data
-  name: GOGS_PVC_NAME
-  required: true    
-- description: Gogs Postgresql PVC name
-  displayName: Gogs Postgresql PVC name
-  value: gogs-postgresql-data
-  name: GOGS_POSTGRESQL_PVC_NAME
-  required: true    
-- description: Jenkins PVC name
-  displayName: Jenkins PVC name
-  value: jenkins-data
-  name: JENKINS_PVC_NAME
-  required: true    
-- description: SonarQube Postgresql PVC name
-  displayName: SonarQube Postgresql PVC name
-  value: sonarqube-postgresql-data
-  name: SONARQUBE_POSTGRESQL_PVC_NAME
-  required: true    
-- description: SonarQube PVC name
-  displayName: SonarQube PVC name
-  value: sonarqube-data
-  name: SONARQUBE_PVC_NAME
-  required: true
-- description: Nexus PVC name
-  displayName: Nexus PVC name
-  value: nexus-data
-  name: NEXUS_PVC_NAME
-  required: true
+
 objects:
-# RoleBinding
 - apiVersion: v1
   groupNames: null
   kind: RoleBinding
@@ -79,23 +48,6 @@ objects:
   subjects:
   - kind: ServiceAccount
     name: default
-# jenkins node imagestream    
-- apiVersion: v1
-  kind: ImageStream
-  metadata:
-    labels:
-      app: jenkins-node
-    name: jenkins-node
-  spec:
-    tags:
-    - annotations:
-        description: The Jenkins Node Docker image
-        tags: jenkins-node
-      from:
-        kind: DockerImage
-        name: openshift/jenkins-slave-maven-centos7:latest
-      importPolicy: {}
-      name: "latest"
 # Pipeline
 - apiVersion: v1
   kind: BuildConfig
@@ -210,22 +162,6 @@ objects:
     to:
       kind: Service
       name: nexus
-- apiVersion: v1
-  kind: ImageStream
-  metadata:
-    labels:
-      app: nexus
-    name: nexus
-  spec:
-    tags:
-    - annotations:
-        description: The Nexus Docker image
-        tags: nexus
-      from:
-        kind: DockerImage
-        name: openshiftdemos/nexus:2.13.0-01
-      importPolicy: {}
-      name: "2.13.0-01"
 # nexus dc
 - apiVersion: v1
   kind: DeploymentConfig
@@ -281,12 +217,10 @@ objects:
         dnsPolicy: ClusterFirst
         restartPolicy: Always
         terminationGracePeriodSeconds: 30
-        securityContext: 
-          runAsUser: 200
         volumes:
         - name: nexus-data
           persistentVolumeClaim:
-            claimName: ${NEXUS_PVC_NAME}
+            claimName: nexus-claim
     triggers:
     - type: ConfigChange
     - imageChangeParams:
@@ -356,46 +290,8 @@ objects:
     to:
       kind: Service
       name: gogs
-# gogs installer image stream
-      
-- apiVersion: v1
-  kind: ImageStream
-  metadata:
-    name: install-gogs
-    labels:
-      app: install-gogs
-  spec:
-    tags:
-    - annotations:
-        description: The Gogs installer git server docker image
-        tags: gogs,go,golang
-        version: "latest"
-      from:
-        kind: DockerImage
-        name: openshiftdemos/oc:latest
-      importPolicy: {}
-      name: "latest"   
-# gogs image stream
-         
-- apiVersion: v1
-  kind: ImageStream
-  metadata:
-    name: gogs
-    labels:
-      app: gogs
-  spec:
-    tags:
-    - annotations:
-        description: The Gogs git server docker image
-        tags: gogs,go,golang
-        version: "latest"
-      from:
-        kind: DockerImage
-        name: docker.io/openshiftdemos/gogs:0.9.113
-      importPolicy: {}
-      name: "2.2.311"
+
 # gogs dc
-      
 - apiVersion: v1
   kind: DeploymentConfig
   metadata:
@@ -408,14 +304,7 @@ objects:
       app: gogs
       deploymentconfig: gogs
     strategy:
-      resources: {}
-      rollingParams:
-        intervalSeconds: 1
-        maxSurge: 25%
-        maxUnavailable: 25%
-        timeoutSeconds: 600
-        updatePeriodSeconds: 1
-      type: Rolling
+      type: Recreate
     template:
       metadata:
         labels:
@@ -453,8 +342,7 @@ objects:
             timeoutSeconds: 1
         dnsPolicy: ClusterFirst
         restartPolicy: Always
-        securityContext:
-          runAsUser: 997
+        securityContext: {}
         terminationGracePeriodSeconds: 30
     triggers:
     - type: ConfigChange
@@ -541,12 +429,10 @@ objects:
         restartPolicy: Always
         securityContext: {}
         terminationGracePeriodSeconds: 30
-        securityContext: 
-          runAsUser: 26
         volumes:
         - name: postgresql-data
           persistentVolumeClaim:
-            claimName: ${GOGS_POSTGRESQL_PVC_NAME}
+            claimName: postgresql-gogs-claim
     triggers:
     - imageChangeParams:
         automatic: true
@@ -775,26 +661,7 @@ objects:
     to:
       kind: Service
       name: sonarqube
-# sonarqube image stream
-      
-- apiVersion: v1
-  kind: ImageStream
-  metadata:
-    labels:
-      app: sonarqube
-    name: sonarqube
-  spec:
-    tags:
-    - annotations:
-        description: The SonarQube Docker image
-        tags: sonarqube
-        version: "6.0"
-      from:
-        kind: DockerImage
-        name: openshiftdemos/sonarqube:6.0
-      importPolicy: {}
-      name: "6.0"   
-         
+
 #  postgresql sonarqube dc
 
 - apiVersion: v1
@@ -866,13 +733,12 @@ objects:
             name: postgresql-data
         dnsPolicy: ClusterFirst
         restartPolicy: Always
+        securityContext: {}
         terminationGracePeriodSeconds: 30
-        securityContext: 
-          runAsUser: 26
         volumes:
         - name: postgresql-data
           persistentVolumeClaim:
-              claimName: ${SONARQUBE_POSTGRESQL_PVC_NAME}
+              claimName: postgresql-sonarqube-claim
     test: false
     triggers:
     - imageChangeParams:
@@ -956,8 +822,7 @@ objects:
           terminationMessagePath: /dev/termination-log
         dnsPolicy: ClusterFirst
         restartPolicy: Always
-        securityContext: 
-          runAsUser: 997
+        securityContext: {}
         terminationGracePeriodSeconds: 30
     test: false
     triggers:
